@@ -167,3 +167,7 @@ python train_ssd_network.py \
 ```
 
 A number of pre-trained weights of popular deep architectures can be found on [TF-Slim models page](https://github.com/tensorflow/models/tree/master/slim).
+
+
+## Leslie add
+for my useage case, please refer to the inference folder.
