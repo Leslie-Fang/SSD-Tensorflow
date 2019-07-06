@@ -7,8 +7,9 @@ import random
 import cv2
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
+from type import category
 
-def inference(input):
+def inference(input=0,inputType=1):
     slim = tf.contrib.slim
     sys.path.append('../')
     from nets import ssd_vgg_300, ssd_common, np_methods
@@ -62,32 +63,88 @@ def inference(input):
         rbboxes = np_methods.bboxes_resize(rbbox_img, rbboxes)
         return rclasses, rscores, rbboxes
 
-    # Test on some demo image and visualize output.
-    img = mpimg.imread(input)
-    rclasses, rscores, rbboxes = process_image(img)
+    # input is a image
+    inputType = int(inputType)
+    if inputType is 1:
+        if input == 0:
+            print("At least indicate 1 input video")
+            exit(-1)
+        # Test on some demo image and visualize output.
+        img = mpimg.imread(input)
+        rclasses, rscores, rbboxes = process_image(img)
 
+        # Find the name of the category num
+        print(list(map(lambda i:"{}:{}".format(i,category[i]),list(rclasses))))
+        rclasses = np.array(list(map(lambda i:"{}:{}".format(i,category[i]),list(rclasses))))
 
-    from type import category
-    # new_list = []
-    # for x in np.nditer(rclasses):
-    #     new_list.append("{}:{}".format(x,category[x]))
-    # rclasses = np.array(new_list,dtype=np.string_)
+        # visualization.bboxes_draw_on_img(img, rclasses, rscores, rbboxes, visualization.colors_plasma)
+        # plot the image directly
+        visualization.plt_bboxes(img, rclasses, rscores, rbboxes)
+    elif inputType == 2:
+        # input is the video
+        # plot the boxes into the image
+        cap = cv2.VideoCapture(input)
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        size = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+        fourcc = cap.get(cv2.CAP_PROP_FOURCC)
+        #fourcc = cv2.CAP_PROP_FOURCC(*'CVID')
+        print('fps=%d,size=%r,fourcc=%r'%(fps,size,fourcc))
+        delay=10/int(fps)
+        print(delay)
+        if delay <= 1:
+            delay = 1
+        while (cap.isOpened()):
+            ret, frame = cap.read()
+            if ret == True:
+                image = frame
+                # the array based representation of the image will be used later in order to prepare the
+                # result image with boxes and labels on it.
+                image_np = image
+                # Expand dimensions since the model expects images to have shape: [1, None, None, 3]
+                image_np_expanded = np.expand_dims(image_np, axis=0)
+                # Actual detection.
+                rclasses, rscores, rbboxes = process_image(image_np)
 
-    #"{}:{}".format(i,category[i])
-    print(rclasses.shape)
-    a = [1,2,3,4]
-    print(list(map(lambda i:print(i), a)))
-    map(lambda i:print(i),list(rclasses))
-    # rclasses = np.array(map(lambda i:"{}:{}".format(i,category[i]),rclasses))
+                #print(list(map(lambda i: "{}:{}".format(i, category[i]), list(rclasses))))
+                rclasses = np.array(list(map(lambda i: "{}:{}".format(i, category[i]), list(rclasses))))
 
+                # Visualization of the results of a detection.
+                visualization.bboxes_draw_on_img(image_np, rclasses, rscores, rbboxes)
+                cv2.imshow('frame', image_np)
+                cv2.waitKey(np.uint(delay))
+                print('Ongoing...')
+            else:
+                break
+        cap.release()
+        cv2.destroyAllWindows()
+    else:
+        print("save video")
+        if input == 0:
+            print("At least indicate 1 input video")
+            exit(-1)
+        def save_image(image_np):
+            rclasses, rscores, rbboxes = process_image(image_np)
+            # print(list(map(lambda i: "{}:{}".format(i, category[i]), list(rclasses))))
+            rclasses = np.array(list(map(lambda i: "{}:{}".format(i, category[i]), list(rclasses))))
+            visualization.bboxes_draw_on_img(image_np, rclasses, rscores, rbboxes)
+            return image_np
 
-    # visualization.bboxes_draw_on_img(img, rclasses, rscores, rbboxes, visualization.colors_plasma)
-    visualization.plt_bboxes(img, rclasses, rscores, rbboxes)
+        from moviepy.editor import VideoFileClip
+        cap = cv2.VideoCapture(input)
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        cap.release()
+        cv2.destroyAllWindows()
 
+        video = VideoFileClip(input)
+        result = video.fl_image(save_image)
+        output = os.path.join("./videos/output_{}".format(input.split("/")[-1]))
+        result.write_videofile(output, fps=fps)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', "--input_image", help="the path of the input image", dest='input',
                         default=os.path.join(sys.path[0], "images/mouse.jpeg"))
+    parser.add_argument('-t', "--input_type", help="the type of the input: image or video", dest='type',
+                        default=1)
     args = parser.parse_args()
-    inference(args.input)
+    inference(args.input,args.type)

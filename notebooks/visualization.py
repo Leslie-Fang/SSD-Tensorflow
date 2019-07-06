@@ -65,11 +65,18 @@ def draw_bbox(img, bbox, shape, label, color=[255, 0, 0], thickness=2):
     cv2.putText(img, str(label), p1[::-1], cv2.FONT_HERSHEY_DUPLEX, 0.5, color, 1)
 
 
-def bboxes_draw_on_img(img, classes, scores, bboxes, colors, thickness=2):
+def bboxes_draw_on_img(img, classes, scores, bboxes, thickness=2):
+    colors = dict()
     shape = img.shape
     for i in range(bboxes.shape[0]):
         bbox = bboxes[i]
-        color = colors[classes[i]]
+        try:
+            cls_id = int(classes[i])
+        except:
+            cls_id = int(classes[i].split(":")[0])
+        if cls_id not in colors:
+            colors[cls_id] = (random.random(), random.random(), random.random())
+        color = colors[cls_id]
         # Draw bounding box...
         p1 = (int(bbox[0] * shape[0]), int(bbox[1] * shape[1]))
         p2 = (int(bbox[2] * shape[0]), int(bbox[3] * shape[1]))
@@ -92,7 +99,10 @@ def plt_bboxes(img, classes, scores, bboxes, figsize=(10,10), linewidth=1.5):
     width = img.shape[1]
     colors = dict()
     for i in range(classes.shape[0]):
-        cls_id = int(classes[i])
+        try:
+            cls_id = int(classes[i])
+        except:
+            cls_id = int(classes[i].split(":")[0])
         if cls_id >= 0:
             score = scores[i]
             if cls_id not in colors:
@@ -106,7 +116,7 @@ def plt_bboxes(img, classes, scores, bboxes, figsize=(10,10), linewidth=1.5):
                                  edgecolor=colors[cls_id],
                                  linewidth=linewidth)
             plt.gca().add_patch(rect)
-            class_name = str(cls_id)
+            class_name = str(classes[i])
             plt.gca().text(xmin, ymin - 2,
                            '{:s} | {:.3f}'.format(class_name, score),
                            bbox=dict(facecolor=colors[cls_id], alpha=0.5),
