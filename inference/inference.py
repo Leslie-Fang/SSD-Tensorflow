@@ -5,9 +5,12 @@ import os,sys
 import math
 import random
 import cv2
-import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 from type import category
+
+import matplotlib
+matplotlib.use('TkAgg')
+import matplotlib.pyplot as plt
 
 def inference(input=0,inputType=1):
     slim = tf.contrib.slim
@@ -95,6 +98,7 @@ def inference(input=0,inputType=1):
             delay = 1
         while (cap.isOpened()):
             ret, frame = cap.read()
+            print(ret)
             if ret == True:
                 image = frame
                 # the array based representation of the image will be used later in order to prepare the
@@ -111,13 +115,15 @@ def inference(input=0,inputType=1):
                 # Visualization of the results of a detection.
                 visualization.bboxes_draw_on_img(image_np, rclasses, rscores, rbboxes)
                 cv2.imshow('frame', image_np)
-                cv2.waitKey(np.uint(delay))
+                #cv2.waitKey(np.uint(delay))
+                if cv2.waitKey(delay) & 0xFF == ord('q'):
+                    break
                 print('Ongoing...')
             else:
                 break
         cap.release()
         cv2.destroyAllWindows()
-    else:
+    elif inputType ==3:
         print("save video")
         if input == 0:
             print("At least indicate 1 input video")
@@ -139,6 +145,31 @@ def inference(input=0,inputType=1):
         result = video.fl_image(save_image)
         output = os.path.join("./videos/output_{}".format(input.split("/")[-1]))
         result.write_videofile(output, fps=fps)
+    else:
+        cap = cv2.VideoCapture(0)
+
+        while (True):
+            # Capture frame-by-frame
+            ret, frame = cap.read()
+
+            #cv2.imshow('frame', frame)
+            # Expand dimensions since the model expects images to have shape: [1, None, None, 3]
+            image_np_expanded = np.expand_dims(frame, axis=0)
+            # Actual detection.
+            rclasses, rscores, rbboxes = process_image(frame)
+
+            # print(list(map(lambda i: "{}:{}".format(i, category[i]), list(rclasses))))
+            rclasses = np.array(list(map(lambda i: "{}:{}".format(i, category[i]), list(rclasses))))
+            # Visualization of the results of a detection.
+            visualization.bboxes_draw_on_img(frame, rclasses, rscores, rbboxes)
+            cv2.imshow('frame', frame)
+
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+
+        # When everything done, release the capture
+        cap.release()
+        cv2.destroyAllWindows()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
