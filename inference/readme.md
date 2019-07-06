@@ -13,13 +13,13 @@ if you want to input a new video
 ```buildoutcfg
 python inference.py -i ./videos/*.mp4 -t 2
 ```
-if you want to use the camelot in your laptop:
-```buildoutcfg
-python inference.py -t 2
-```
-
 if you want to process the video and save to a new video:
 ```buildoutcfg
 python inference.py -i ./videos/*.mp4 -t 3
 ```
 you can find the output_*.mp4 in the videos directory
+
+### Read the camera data and detection
+```buildoutcfg
+python inference.py -t 4
+```
